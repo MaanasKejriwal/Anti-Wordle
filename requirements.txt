@@ -1,4 +1,3 @@
-streamlit
-random
-nltk
-pydictionary
+streamlit==1.34.0
+nltk==3.8.1
+pydictionary==2.0.1
