@@ -171,14 +171,57 @@ keyboard_layout = [
 ]
 
 # Arrange the buttons to appear like a keyboard
-for row in keyboard_layout:
-    row_html = "<div style='display: flex; justify-content: center; gap: 10px; margin-bottom: 10px;'>"
-    for letter in row:
-        color = st.session_state.keyboard_colors[letter]
-        button_html = f"<button style='background-color: {color}; width: 60px; height: 60px; color: white; border: none; border-radius: 5px; font-size: 20px;'>{letter.upper()}</button>"
-        row_html += f"<span onClick=\"streamlit.write('{letter}')\">{button_html}</span>"
-    row_html += "</div>"
-    st.markdown(row_html, unsafe_allow_html=True)
+# Function to display the on-screen keyboard with a responsive layout
+def display_keyboard():
+    keyboard_layout = [
+        ['q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p'],
+        ['a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l'],
+        ['z', 'x', 'c', 'v', 'b', 'n', 'm']
+    ]
+    
+    # Add responsive styles using CSS
+    st.markdown("""
+        <style>
+        .keyboard-row {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 10px;
+            flex-wrap: wrap;  /* Allows wrapping on small screens */
+        }
+        .keyboard-button {
+            background-color: lightgrey;
+            width: 45px;
+            height: 45px;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 18px;
+            margin: 5px;
+            flex: 1 0 9%; /* Allows buttons to shrink and grow */
+            max-width: 60px; /* Ensures buttons don't get too wide */
+        }
+        @media only screen and (max-width: 600px) {
+            .keyboard-button {
+                font-size: 16px;
+                width: 40px;
+                height: 40px;
+            }
+        }
+        </style>
+    """, unsafe_allow_html=True)
+    
+    # Arrange the buttons to appear like a keyboard
+    for row in keyboard_layout:
+        row_html = "<div class='keyboard-row'>"
+        for letter in row:
+            color = st.session_state.keyboard_colors.get(letter, 'lightgrey')
+            button_html = f"<button class='keyboard-button' style='background-color: {color};'>{letter.upper()}</button>"
+            row_html += f"<span onClick=\"streamlit.write('{letter}')\">{button_html}</span>"
+        row_html += "</div>"
+        st.markdown(row_html, unsafe_allow_html=True)
+
+# Display the responsive keyboard
+display_keyboard()
 
 # Button to restart the game if the game is over or if the player gave up
 if st.session_state.game_over or st.session_state.gave_up:
