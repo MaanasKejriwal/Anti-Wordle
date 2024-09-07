@@ -35,25 +35,42 @@ if 'hidden_word' not in st.session_state:
     initialize_game()
 
 # Game mechanics
+# Game mechanics
+# Game mechanics
 def check_guess(guess):
     feedback = []
     hidden_word = st.session_state.hidden_word
+    print(hidden_word)
     
+    # Convert hidden_word to a list to mark letters as used
+    hidden_word_list = list(hidden_word)
+    
+    # First pass: Check for red letters (correct position)
     for i, letter in enumerate(guess):
-        if letter == hidden_word[i]:
+        if letter == hidden_word_list[i]:
             feedback.append(('#ad0e19', letter))  # Correct position (red)
+            hidden_word_list[i] = None  # Mark this position as used
             st.session_state.red_positions[i] = letter  # Track the position of red letters
             st.session_state.keyboard_colors[letter] = '#ad0e19'  # Update keyboard color to red
-        elif letter in hidden_word and st.session_state.keyboard_colors[letter] != '#ad0e19':
-            feedback.append(('#f0b51f', letter))  # Correct letter, wrong position (yellow)
-            st.session_state.yellow_letters.add(letter)  # Add yellow letters to the set
-            st.session_state.keyboard_colors[letter] = '#f0b51f'  # Update keyboard color to yellow
-        elif letter not in hidden_word:
-            feedback.append(('gray', letter))  # Incorrect letter (grey)
-            st.session_state.grey_letters.add(letter)  # Add grey letters to the set
-            st.session_state.keyboard_colors[letter] = 'gray'  # Update keyboard color to grey
+        else:
+            feedback.append(('gray', letter))  # Placeholder for other colors
+            
+    # Second pass: Check for yellow letters (correct letter, wrong position)
+    for i, (color, letter) in enumerate(feedback):
+        if color != '#ad0e19':  # Only check non-red letters
+            if letter in hidden_word_list:
+                feedback[i] = ('#f0b51f', letter)  # Correct letter, wrong position (yellow)
+                hidden_word_list[hidden_word_list.index(letter)] = None  # Mark this letter as used
+                st.session_state.yellow_letters.add(letter)  # Add yellow letters to the set
+                st.session_state.keyboard_colors[letter] = '#f0b51f'  # Update keyboard color to yellow
+            elif letter not in hidden_word:
+                st.session_state.grey_letters.add(letter)  # Add grey letters to the set
+                st.session_state.keyboard_colors[letter] = 'gray'  # Update keyboard color to grey
     
     return feedback
+
+
+
 
 def is_valid_guess(guess):
     """Check if the guess contains all required yellow letters, no grey letters, and red letters are in the correct position."""
@@ -64,12 +81,13 @@ def is_valid_guess(guess):
     return contains_yellow_letters and does_not_contain_grey_letters and red_positions_correct
 
 def display_guess(feedback):
-    """Display the guess with colored boxes like Wordle, but with larger boxes."""
+    """Display the guess with colored boxes, ensuring that the order of letters is preserved."""
     guess_html = "<div style='display: flex; justify-content: center;'>"
     for color, letter in feedback:
         guess_html += f"<div style='width: 60px; height: 60px; background-color: {color}; color: white; display: flex; justify-content: center; align-items: center; margin: 5px; font-size: 32px;'>{letter.upper()}</div>"
     guess_html += "</div>"
     st.markdown(guess_html, unsafe_allow_html=True)
+
 
 # Sidebar for instructions
 with st.sidebar:
