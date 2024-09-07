@@ -1,19 +1,11 @@
 import streamlit as st
 import random
-import nltk
-from nltk.corpus import words
-from PyDictionary import PyDictionary
 
-# Download the words corpus
-nltk.download('words')
-
-# Initialize PyDictionary
-dictionary = PyDictionary()
-
-# Get a list of valid 5-letter words
+# Function to read the words from a text file
 def get_valid_words():
-    """Retrieve a list of valid 5-letter words."""
-    all_words = words.words()
+    """Retrieve a list of valid 5-letter words from a file."""
+    with open("words.txt", "r") as file:
+        all_words = file.read().splitlines()  # Read all words and split by lines
     return [word.lower() for word in all_words if len(word) == 5]
 
 # Function to initialize or reset the game
@@ -28,12 +20,11 @@ def initialize_game():
     st.session_state.game_over = False  # Flag to indicate if the game is over
     st.session_state.temp_guess_input = ''  # Clear the guess input
     st.session_state.gave_up = False  # Track if the player gave up
-    st.session_state.keyboard_colors = {chr(i): 'lightgrey' for i in range(97, 123)}  # Initialize keyboard colors
+    st.session_state.keyboard_colors = {chr(i): 'green' for i in range(97, 123)}  # Initialize keyboard colors
 
 # Initialize session state variables if not already set
 if 'hidden_word' not in st.session_state:
     initialize_game()
-
 # Game mechanics
 # Game mechanics
 # Game mechanics
@@ -118,37 +109,40 @@ with st.form(key='guess_form'):
     submit_button = st.form_submit_button(label='Submit Guess')
 
     if submit_button:
-        if guess_input:
+        if len(guess_input) != 5:
+            st.warning("Your guess must be a 5-letter word.")
+        elif guess_input not in get_valid_words():
+            st.warning("The word you entered is not in the list of valid words.")
+        else:
             guess = guess_input
             
-            if len(guess) == 5 and guess in get_valid_words():
-                if is_valid_guess(guess):
-                    st.session_state.guesses.append(guess)
-                    st.session_state.used_letters.update(guess)
-                    feedback = check_guess(guess)
+            if is_valid_guess(guess):
+                st.session_state.guesses.append(guess)
+                st.session_state.used_letters.update(guess)
+                feedback = check_guess(guess)
 
-                    # Check if the guess is the hidden word
-                    if guess == st.session_state.hidden_word:
-                        st.session_state.game_over = True  # Set game over flag to True
-                        st.session_state.temp_guess_input = ''  # Clear the input field
-                        st.balloons()  # Optional: Display balloons as a celebration
-                    else:
-                        # Clear the input field
-                        st.session_state.temp_guess_input = ''
+                # Check if the guess is the hidden word
+                if guess == st.session_state.hidden_word:
+                    st.session_state.game_over = True  # Set game over flag to True
+                    st.session_state.temp_guess_input = ''  # Clear the input field
+                    st.balloons()  # Optional: Display balloons as a celebration
                 else:
-                    missing_yellow = [letter for letter in st.session_state.yellow_letters if letter not in guess]
-                    used_grey = [letter for letter in guess if letter in st.session_state.grey_letters]
-                    incorrect_red_positions = [i for i, letter in st.session_state.red_positions.items() if guess[i] != letter]
-                    
-                    warning_message = ""
-                    if missing_yellow:
-                        warning_message += f"You must include these letters: {', '.join(missing_yellow)}. "
-                    if used_grey:
-                        warning_message += f"You cannot use these letters: {', '.join(used_grey)}. "
-                    if incorrect_red_positions:
-                        warning_message += f"The red letters must be in the correct positions: {', '.join([str(i + 1) for i in incorrect_red_positions])}."
-                    
-                    st.warning(warning_message)
+                    # Clear the input field
+                    st.session_state.temp_guess_input = ''
+            else:
+                missing_yellow = [letter for letter in st.session_state.yellow_letters if letter not in guess]
+                used_grey = [letter for letter in guess if letter in st.session_state.grey_letters]
+                incorrect_red_positions = [i for i, letter in st.session_state.red_positions.items() if guess[i] != letter]
+
+                warning_message = ""
+                if missing_yellow:
+                    warning_message += f"You must include these letters: {', '.join(missing_yellow)}. "
+                if used_grey:
+                    warning_message += f"You cannot use these letters: {', '.join(used_grey)}. "
+                if incorrect_red_positions:
+                    warning_message += f"The red letters must be in the correct positions: {', '.join([str(i + 1) for i in incorrect_red_positions])}."
+
+                st.warning(warning_message)
 
 # Display previous guesses
 if st.session_state.guesses:
