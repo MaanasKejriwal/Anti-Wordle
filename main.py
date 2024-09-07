@@ -27,6 +27,8 @@ def initialize_game():
     st.session_state.red_positions = {}
     st.session_state.game_over = False  # Flag to indicate if the game is over
     st.session_state.temp_guess_input = ''  # Clear the guess input
+    st.session_state.gave_up = False  # Track if the player gave up
+    st.session_state.keyboard_colors = {chr(i): 'lightgrey' for i in range(97, 123)}  # Initialize keyboard colors
 
 # Initialize session state variables if not already set
 if 'hidden_word' not in st.session_state:
@@ -36,18 +38,20 @@ if 'hidden_word' not in st.session_state:
 def check_guess(guess):
     feedback = []
     hidden_word = st.session_state.hidden_word
-    print(hidden_word)
     
     for i, letter in enumerate(guess):
         if letter == hidden_word[i]:
             feedback.append(('#ad0e19', letter))  # Correct position (red)
             st.session_state.red_positions[i] = letter  # Track the position of red letters
-        elif letter in hidden_word:
+            st.session_state.keyboard_colors[letter] = '#ad0e19'  # Update keyboard color to red
+        elif letter in hidden_word and st.session_state.keyboard_colors[letter] != '#ad0e19':
             feedback.append(('#f0b51f', letter))  # Correct letter, wrong position (yellow)
             st.session_state.yellow_letters.add(letter)  # Add yellow letters to the set
-        else:
+            st.session_state.keyboard_colors[letter] = '#f0b51f'  # Update keyboard color to yellow
+        elif letter not in hidden_word:
             feedback.append(('gray', letter))  # Incorrect letter (grey)
             st.session_state.grey_letters.add(letter)  # Add grey letters to the set
+            st.session_state.keyboard_colors[letter] = 'gray'  # Update keyboard color to grey
     
     return feedback
 
@@ -71,7 +75,7 @@ def display_guess(feedback):
 with st.sidebar:
     st.header("How to Play")
     st.write("""
-        **Objective:** Avoid guessing the hidden 5-letter word, maxmising the valid words you can guess.
+        **Objective:** Avoid guessing the hidden 5-letter word, maximizing the valid words you can guess.
 
         **Instructions:**
         1. Enter your 5-letter guess in the text box.
@@ -88,7 +92,6 @@ with st.sidebar:
     """)
 
 st.markdown("<h1 style='text-align: center; color: white; font-family: 'EB Garamond', serif; font-size: 24px;'>Anti-Wordle</h1>", unsafe_allow_html=True)
-
 
 # Form for input
 with st.form(key='guess_form'):
@@ -135,29 +138,49 @@ if st.session_state.guesses:
         feedback = check_guess(guess)
         display_guess(feedback)
 
-# Display available letters
-available_letters = [chr(i) for i in range(97, 123) if chr(i) not in st.session_state.used_letters and chr(i) not in st.session_state.grey_letters]
+# Function to handle keyboard clicks
+def handle_keyboard_click(letter):
+    if len(st.session_state.temp_guess_input) < 5:
+        st.session_state.temp_guess_input += letter
 
-# Button to restart the game if the game is over
-if st.session_state.game_over:
+# Display on-screen keyboard with clickable buttons in QWERTY layout
+st.markdown("<h4 style='text-align: center; color: white;'>Available Letters (Word Map):</h4>", unsafe_allow_html=True)
+st.markdown("<h6 style='text-align: center; color: white;'>Please use this only as an indication, it is not a keyboard.</h6>", unsafe_allow_html=True)
+keyboard_layout = [
+    ['q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p'],
+    ['a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l'],
+    ['z', 'x', 'c', 'v', 'b', 'n', 'm']
+]
+
+# Arrange the buttons to appear like a keyboard
+for row in keyboard_layout:
+    row_html = "<div style='display: flex; justify-content: center; gap: 10px; margin-bottom: 10px;'>"
+    for letter in row:
+        color = st.session_state.keyboard_colors[letter]
+        button_html = f"<button style='background-color: {color}; width: 60px; height: 60px; color: white; border: none; border-radius: 5px; font-size: 20px;'>{letter.upper()}</button>"
+        row_html += f"<span onClick=\"streamlit.write('{letter}')\">{button_html}</span>"
+    row_html += "</div>"
+    st.markdown(row_html, unsafe_allow_html=True)
+
+# Button to restart the game if the game is over or if the player gave up
+if st.session_state.game_over or st.session_state.gave_up:
     if st.button("Restart Game"):
         initialize_game()
         st.experimental_rerun()  # Trigger a rerun to clear previous guesses and input
 
-    # Display "Game Over" message
-    st.markdown("<h2 style='text-align: center; color: white;'>Game Over!</h2>", unsafe_allow_html=True)
-    st.markdown("<h4 style='text-align: center; color: white;'>You were able to maximize your guesses to: {}</h4>".format(len(st.session_state.guesses)), unsafe_allow_html=True)
+    # Display "Game Over" message based on whether the player gave up or guessed the word
+    if st.session_state.gave_up:
+        st.markdown("<h2 style='text-align: center; color: white;'>Gave up after {} tries!</h2>".format(len(st.session_state.guesses)), unsafe_allow_html=True)
+    else:
+        st.markdown("<h2 style='text-align: center; color: white;'>Game Over!</h2>", unsafe_allow_html=True)
+        st.markdown("<h4 style='text-align: center; color: white;'>You were able to maximize your guesses to: {}</h4>".format(len(st.session_state.guesses)), unsafe_allow_html=True)
+    
     st.markdown("<h4 style='text-align: center; color: white;'>The word was: '{}' </h4>".format(st.session_state.hidden_word), unsafe_allow_html=True)
 
-    # Fetch and display the word definition
-    # definition = dictionary.meaning(st.session_state.hidden_word)
-    # if definition:
-    #     phonetic = dictionary.get_phonetic(st.session_state.hidden_word)
-    #     st.markdown(f"<h3 style='text-align: center; color: white;'>Definition:</h3>", unsafe_allow_html=True)
-    #     st.markdown(f"<p style='text-align: center; color: white; font-style: italic;'>{phonetic}</p>", unsafe_allow_html=True)
-    #     for part_of_speech, meanings in definition.items():
-    #         st.markdown(f"<h4 style='text-align: center; color: white;'>{part_of_speech.capitalize()}:</h4>", unsafe_allow_html=True)
-    #         for meaning in meanings:
-    #             st.markdown(f"<p style='text-align: center; color: white;'>{meaning}</p>", unsafe_allow_html=True)
-    # else:
-    #     st.markdown("<p style='text-align: center; color: white;'>No definition found.</p>", unsafe_allow_html=True)
+    # Give up button (only if the game is not over)
+    if not st.session_state.game_over and not st.session_state.gave_up:
+        if st.button("Give Up"):
+            st.session_state.gave_up = True
+            feedback = [('gray', letter) if letter not in st.session_state.red_positions.values() else ('#ad0e19', letter) for letter in st.session_state.hidden_word]
+            display_guess(feedback)
+            st.experimental_rerun()  # Trigger a rerun to update the game over screen
