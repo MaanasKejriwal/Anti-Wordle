@@ -178,7 +178,7 @@ if st.session_state.game_over or st.session_state.gave_up:
     st.markdown("<h4 style='text-align: center; color: white;'>The word was: '{}' </h4>".format(st.session_state.hidden_word), unsafe_allow_html=True)
 
     # Give up button (only if the game is not over)
-    if not st.session_state.game_over and not st.session_state.gave_up:
+if not st.session_state.game_over and not st.session_state.gave_up:
         if st.button("Give Up"):
             st.session_state.gave_up = True
             feedback = [('gray', letter) if letter not in st.session_state.red_positions.values() else ('#ad0e19', letter) for letter in st.session_state.hidden_word]
