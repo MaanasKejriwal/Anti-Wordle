@@ -195,6 +195,7 @@ if st.session_state.game_over:
             st.markdown(f"<h3 style='text-align: center; color: white;'>Score: {len(st.session_state.guesses)}</h5>", unsafe_allow_html=True)
             st.markdown(f"<h3 style='text-align: center; color: white;'>You found the hidden word after {len(st.session_state.guesses)} guesses!</h3>", unsafe_allow_html=True)
         else:
+            st.balloons()
             st.markdown(f"<h3 style='text-align: center; color: white;'>Score: {len(st.session_state.guesses)}</h5>", unsafe_allow_html=True)
             st.markdown(f"<h5 style='text-align: center; color: white;'>Congratulations! You successfully avoided the hidden word.</h5>", unsafe_allow_html=True)
     st.markdown(f"<h4 style='text-align: center; color: white;'>The hidden word was: {st.session_state.hidden_word.upper()}</h4>", unsafe_allow_html=True)
