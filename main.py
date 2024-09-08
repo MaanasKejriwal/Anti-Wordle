@@ -25,9 +25,8 @@ def initialize_game():
 # Initialize session state variables if not already set
 if 'hidden_word' not in st.session_state:
     initialize_game()
-# Game mechanics
-# Game mechanics
-# Game mechanics
+
+# Function to check the guess and provide feedback
 def check_guess(guess):
     feedback = []
     hidden_word = st.session_state.hidden_word
@@ -60,9 +59,7 @@ def check_guess(guess):
     
     return feedback
 
-
-
-
+# Function to validate the guess based on the rules
 def is_valid_guess(guess):
     """Check if the guess contains all required yellow letters, no grey letters, and red letters are in the correct position."""
     contains_yellow_letters = all(letter in guess for letter in st.session_state.yellow_letters)
@@ -71,6 +68,7 @@ def is_valid_guess(guess):
     
     return contains_yellow_letters and does_not_contain_grey_letters and red_positions_correct
 
+# Function to display the guess with colored boxes
 def display_guess(feedback):
     """Display the guess with colored boxes, ensuring that the order of letters is preserved."""
     guess_html = "<div style='display: flex; justify-content: center;'>"
@@ -78,7 +76,6 @@ def display_guess(feedback):
         guess_html += f"<div style='width: 60px; height: 60px; background-color: {color}; color: white; display: flex; justify-content: center; align-items: center; margin: 5px; font-size: 32px;'>{letter.upper()}</div>"
     guess_html += "</div>"
     st.markdown(guess_html, unsafe_allow_html=True)
-
 
 # Sidebar for instructions
 with st.sidebar:
@@ -98,62 +95,60 @@ with st.sidebar:
         - You must use all required yellow letters in each guess.
         - You cannot use greyed letters once they have been discovered.
         - Once you have discovered a red letter, it must remain in the correct position.
+        - You have 5 guesses to avoid finding the hidden word.
     """)
 
 st.markdown("<h1 style='text-align: center; color: white; font-family: 'EB Garamond', serif; font-size: 24px;'>Anti-Wordle</h1>", unsafe_allow_html=True)
 
 # Form for input
-with st.form(key='guess_form'):
-    st.markdown("<h4 style='text-align: center; color: white; font-family: 'EB Garamond', serif; font-size: 24px;'>Enter your guess:</h4>", unsafe_allow_html=True)
-    guess_input = st.text_input('', value=st.session_state.temp_guess_input).lower()
-    submit_button = st.form_submit_button(label='Submit Guess')
+if not st.session_state.game_over:  # Disable form if the game is over
+    with st.form(key='guess_form'):
+        st.markdown("<h4 style='text-align: center; color: white; font-family: 'EB Garamond', serif; font-size: 24px;'>Enter your guess:</h4>", unsafe_allow_html=True)
+        guess_input = st.text_input('', value=st.session_state.temp_guess_input).lower()
+        submit_button = st.form_submit_button(label='Submit Guess')
 
-    if submit_button:
-        if len(guess_input) != 5:
-            st.warning("Your guess must be a 5-letter word.")
-        elif guess_input not in get_valid_words():
-            st.warning("The word you entered is not in the list of valid words.")
-        else:
-            guess = guess_input
-            
-            if is_valid_guess(guess):
-                st.session_state.guesses.append(guess)
-                st.session_state.used_letters.update(guess)
-                feedback = check_guess(guess)
-
-                # Check if the guess is the hidden word
-                if guess == st.session_state.hidden_word:
-                    st.session_state.game_over = True  # Set game over flag to True
-                    st.session_state.temp_guess_input = ''  # Clear the input field
-                    st.balloons()  # Optional: Display balloons as a celebration
-                else:
-                    # Clear the input field
-                    st.session_state.temp_guess_input = ''
+        if submit_button:
+            if len(guess_input) != 5:
+                st.warning("Your guess must be a 5-letter word.")
+            elif guess_input not in get_valid_words():
+                st.warning("The word you entered is not in the list of valid words.")
             else:
-                missing_yellow = [letter for letter in st.session_state.yellow_letters if letter not in guess]
-                used_grey = [letter for letter in guess if letter in st.session_state.grey_letters]
-                incorrect_red_positions = [i for i, letter in st.session_state.red_positions.items() if guess[i] != letter]
+                guess = guess_input
+                
+                if is_valid_guess(guess):
+                    st.session_state.guesses.append(guess)
+                    st.session_state.used_letters.update(guess)
+                    feedback = check_guess(guess)
 
-                warning_message = ""
-                if missing_yellow:
-                    warning_message += f"You must include these letters: {', '.join(missing_yellow)}. "
-                if used_grey:
-                    warning_message += f"You cannot use these letters: {', '.join(used_grey)}. "
-                if incorrect_red_positions:
-                    warning_message += f"The red letters must be in the correct positions: {', '.join([str(i + 1) for i in incorrect_red_positions])}."
+                    # Check if the guess is the hidden word
+                    if guess == st.session_state.hidden_word:
+                        st.session_state.game_over = True  # Set game over flag to True
+                        st.session_state.temp_guess_input = ''  # Clear the input field
+                    elif len(st.session_state.guesses) >= 5:
+                        st.session_state.game_over = True  # End the game after 5 guesses
+                    else:
+                        # Clear the input field
+                        st.session_state.temp_guess_input = ''
+                else:
+                    missing_yellow = [letter for letter in st.session_state.yellow_letters if letter not in guess]
+                    used_grey = [letter for letter in guess if letter in st.session_state.grey_letters]
+                    incorrect_red_positions = [i for i, letter in st.session_state.red_positions.items() if guess[i] != letter]
 
-                st.warning(warning_message)
+                    warning_message = ""
+                    if missing_yellow:
+                        warning_message += f"You must include these letters: {', '.join(missing_yellow)}. "
+                    if used_grey:
+                        warning_message += f"You cannot use these letters: {', '.join(used_grey)}. "
+                    if incorrect_red_positions:
+                        warning_message += f"The red letters must be in the correct positions: {', '.join([str(i + 1) for i in incorrect_red_positions])}."
+
+                    st.warning(warning_message)
 
 # Display previous guesses
 if st.session_state.guesses:
     for guess in st.session_state.guesses:
         feedback = check_guess(guess)
         display_guess(feedback)
-
-# Function to handle keyboard clicks
-def handle_keyboard_click(letter):
-    if len(st.session_state.temp_guess_input) < 5:
-        st.session_state.temp_guess_input += letter
 
 # Display on-screen keyboard with clickable buttons in QWERTY layout
 st.markdown("<h4 style='text-align: center; color: white;'>Available Letters (Word Map):</h4>", unsafe_allow_html=True)
@@ -164,7 +159,6 @@ keyboard_layout = [
     ['z', 'x', 'c', 'v', 'b', 'n', 'm']
 ]
 
-# Arrange the buttons to appear like a keyboard
 # Function to display the on-screen keyboard with a responsive layout
 def display_keyboard():
     keyboard_layout = [
@@ -172,70 +166,39 @@ def display_keyboard():
         ['a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l'],
         ['z', 'x', 'c', 'v', 'b', 'n', 'm']
     ]
-    
-    # Add responsive styles using CSS
-    st.markdown("""
-        <style>
-        .keyboard-row {
-            display: flex;
-            justify-content: center;
-            margin-bottom: 10px;
-            flex-wrap: wrap;  /* Allows wrapping on small screens */
-        }
-        .keyboard-button {
-            background-color: lightgrey;
-            width: 45px;
-            height: 45px;
-            color: white;
-            border: none;
-            border-radius: 5px;
-            font-size: 18px;
-            margin: 5px;
-            flex: 1 0 9%; /* Allows buttons to shrink and grow */
-            max-width: 60px; /* Ensures buttons don't get too wide */
-        }
-        @media only screen and (max-width: 600px) {
-            .keyboard-button {
-                font-size: 16px;
-                width: 40px;
-                height: 40px;
-            }
-        }
-        </style>
-    """, unsafe_allow_html=True)
-    
-    # Arrange the buttons to appear like a keyboard
+    keyboard_html = "<div style='display: flex; flex-direction: column; align-items: center;'>"
     for row in keyboard_layout:
-        row_html = "<div class='keyboard-row'>"
+        keyboard_html += "<div style='display: flex;'>"
         for letter in row:
-            color = st.session_state.keyboard_colors.get(letter, 'lightgrey')
-            button_html = f"<button class='keyboard-button' style='background-color: {color};'>{letter.upper()}</button>"
-            row_html += f"<span onClick=\"streamlit.write('{letter}')\">{button_html}</span>"
-        row_html += "</div>"
-        st.markdown(row_html, unsafe_allow_html=True)
+            color = st.session_state.keyboard_colors.get(letter, 'green')  # Get the color for the letter
+            keyboard_html += f"<div style='width: 40px; height: 40px; background-color: {color}; color: white; display: flex; justify-content: center; align-items: center; margin: 5px; border-radius: 5px;'>{letter.upper()}</div>"
+        keyboard_html += "</div>"
+    keyboard_html += "</div>"
+    st.markdown(keyboard_html, unsafe_allow_html=True)
 
-# Display the responsive keyboard
 display_keyboard()
 
-# Button to restart the game if the game is over or if the player gave up
-if st.session_state.game_over or st.session_state.gave_up:
+# Display a "Give Up" button if the game is not over
+if not st.session_state.game_over:
+    if st.button("Give Up"):
+        st.session_state.gave_up = True  # Track that the player gave up
+        st.session_state.game_over = True  # End the game
+
+# Display the game over screen if the game is over
+if st.session_state.game_over:
+    if st.session_state.gave_up:
+        st.markdown(f"<h3 style='text-align: center; color: white;'>You gave up after {len(st.session_state.guesses)} guesses!</h3>", unsafe_allow_html=True)
+        st.markdown(f"<h3 style='text-align: center; color: white;'>The hidden word was: {st.session_state.hidden_word.upper()}</h3>", unsafe_allow_html=True)
+    else:
+        st.markdown("<h3 style='text-align: center; color: white;'>Game Over</h3>", unsafe_allow_html=True)
+        if st.session_state.guesses[-1] == st.session_state.hidden_word:
+            st.markdown(f"<h3 style='text-align: center; color: white;'>Score: {len(st.session_state.guesses)}</h5>", unsafe_allow_html=True)
+            st.markdown(f"<h3 style='text-align: center; color: white;'>You found the hidden word after {len(st.session_state.guesses)} guesses!</h3>", unsafe_allow_html=True)
+        else:
+            st.markdown(f"<h3 style='text-align: center; color: white;'>Score: {len(st.session_state.guesses)}</h5>", unsafe_allow_html=True)
+            st.markdown(f"<h5 style='text-align: center; color: white;'>Congratulations! You successfully avoided the hidden word.</h5>", unsafe_allow_html=True)
+    st.markdown(f"<h4 style='text-align: center; color: white;'>The hidden word was: {st.session_state.hidden_word.upper()}</h4>", unsafe_allow_html=True)
+
+
     if st.button("Restart Game"):
         initialize_game()
-        st.experimental_rerun()  # Trigger a rerun to clear previous guesses and input
-
-    # Display "Game Over" message based on whether the player gave up or guessed the word
-    if st.session_state.gave_up:
-        st.markdown("<h2 style='text-align: center; color: white;'>Gave up after {} tries!</h2>".format(len(st.session_state.guesses)), unsafe_allow_html=True)
-    else:
-        st.markdown("<h2 style='text-align: center; color: white;'>Game Over!</h2>", unsafe_allow_html=True)
-        st.markdown("<h4 style='text-align: center; color: white;'>You were able to maximize your guesses to: {}</h4>".format(len(st.session_state.guesses)), unsafe_allow_html=True)
-    
-    st.markdown("<h4 style='text-align: center; color: white;'>The word was: '{}' </h4>".format(st.session_state.hidden_word), unsafe_allow_html=True)
-
-    # Give up button (only if the game is not over)
-if not st.session_state.game_over and not st.session_state.gave_up:
-        if st.button("Give Up"):
-            st.session_state.gave_up = True
-            feedback = [('gray', letter) if letter not in st.session_state.red_positions.values() else ('#ad0e19', letter) for letter in st.session_state.hidden_word]
-            display_guess(feedback)
-            st.experimental_rerun()  # Trigger a rerun to update the game over screen
